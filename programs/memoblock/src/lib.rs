@@ -17,6 +17,17 @@ pub mod memoblock {
         memory_account.description = description;
         Ok(())
     }
+
+    pub fn update_memory(
+        ctx: Context<UpdateMemory>,
+        title: String,
+        description: String,
+    ) -> Result<()> {
+        let memory_account = &mut ctx.accounts.memory_account;
+        memory_account.title = title;
+        memory_account.description = description;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
