@@ -37,6 +37,26 @@ pub struct CreateMemory<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+#[instruction(title: String)]
+pub struct UpdateMemory<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        mut,
+        realloc = 8 + Memory::INIT_SPACE, 
+        // realloc is actually used to return the extra lamport or take the extra lamport by comparing current account space and previous account space
+        realloc::payer = payer,
+        realloc::zero = true,
+        seeds = [title.as_bytes(), payer.key().as_ref()],
+        bump,
+    )]
+    pub memory_account: Account<'info, Memory>,
+
+    pub system_program: Program<'info, System>,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Memory {
