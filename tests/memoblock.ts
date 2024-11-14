@@ -98,4 +98,43 @@ describe("memoblock", () => {
     assert.equal(updatedMemory.title, newTitle);
     assert.equal(updatedMemory.description, newDescription);
   });
+
+  it("Deletes a memory", async () => {
+    const demoKeypair = web3.Keypair.generate();
+    await fundWallet(demoKeypair.publicKey);
+
+    const memoryId = web3.Keypair.generate().publicKey;
+    const title = "Memory to Delete";
+    const description = "Description of memory to delete";
+
+    const [memoryAccount] = web3.PublicKey.findProgramAddressSync(
+      [memoryId.toBuffer(), demoKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const accounts = {
+      payer: demoKeypair.publicKey,
+      memory_account: memoryAccount,
+      system_program: web3.SystemProgram.programId,
+    };
+
+    await program.methods
+      .createMemory(memoryId, title, description)
+      .accounts(accounts)
+      .signers([demoKeypair])
+      .rpc();
+
+    await program.methods
+      .deleteMemory(memoryId)
+      .accounts(accounts)
+      .signers([demoKeypair])
+      .rpc();
+
+    try {
+      await program.account.memory.fetch(memoryAccount);
+      assert.fail("Memory account should have been closed");
+    } catch (error) {
+      assert.include(error.message, "Account does not exist");
+    }
+  });
 });
