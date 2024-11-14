@@ -59,4 +59,43 @@ describe("memoblock", () => {
     assert.equal(memory.description, description);
     assert.equal(memory.owner.toString(), demoKeypair.publicKey.toString());
   });
+
+  it("Updates a memory", async () => {
+    const demoKeypair = web3.Keypair.generate();
+    await fundWallet(demoKeypair.publicKey);
+
+    const memoryId = web3.Keypair.generate().publicKey;
+    const initialTitle = "Initial Title";
+    const initialDescription = "Initial Description";
+
+    const [memoryAccount] = web3.PublicKey.findProgramAddressSync(
+      [memoryId.toBuffer(), demoKeypair.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const accounts = {
+      payer: demoKeypair.publicKey,
+      memory_account: memoryAccount,
+      system_program: web3.SystemProgram.programId,
+    };
+
+    await program.methods
+      .createMemory(memoryId, initialTitle, initialDescription)
+      .accounts(accounts)
+      .signers([demoKeypair])
+      .rpc();
+
+    const newTitle = "Updated Title";
+    const newDescription = "Updated Description";
+
+    await program.methods
+      .updateMemory(memoryId, newTitle, newDescription)
+      .accounts(accounts)
+      .signers([demoKeypair])
+      .rpc();
+
+    const updatedMemory = await program.account.memory.fetch(memoryAccount);
+    assert.equal(updatedMemory.title, newTitle);
+    assert.equal(updatedMemory.description, newDescription);
+  });
 });
