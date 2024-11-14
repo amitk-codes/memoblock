@@ -8,10 +8,12 @@ pub mod memoblock {
 
     pub fn create_memory(
         ctx: Context<CreateMemory>,
+        id: Pubkey,
         title: String,
         description: String,
     ) -> Result<()> {
         let memory_account = &mut ctx.accounts.memory_account;
+        memory_account.id = id;
         memory_account.owner = ctx.accounts.payer.key();
         memory_account.title = title;
         memory_account.description = description;
@@ -20,24 +22,24 @@ pub mod memoblock {
 
     pub fn update_memory(
         ctx: Context<UpdateMemory>,
-        _old_title: String,
+        _id: Pubkey,
         new_title: String,
-        description: String,
+        new_description: String,
     ) -> Result<()> {
         let memory_account = &mut ctx.accounts.memory_account;
         
         memory_account.title = new_title;
-        memory_account.description = description;
+        memory_account.description = new_description;
         Ok(())
     }
 
-    pub fn delete_memory(_ctx: Context<DeleteMemory>, _title: String) -> Result<()> {
+    pub fn delete_memory(_ctx: Context<DeleteMemory>, _id: Pubkey) -> Result<()> {
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(title: String)]
+#[instruction(id: Pubkey)]
 pub struct CreateMemory<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -46,7 +48,7 @@ pub struct CreateMemory<'info> {
         init,
         payer = payer,
         space = Memory::INIT_SPACE,
-        seeds = [title.as_bytes(), payer.key().as_ref()], 
+        seeds = [id.as_ref(), payer.key().as_ref()], 
         bump,
     )]
     pub memory_account: Account<'info, Memory>,
@@ -55,7 +57,7 @@ pub struct CreateMemory<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(old_title: String)]
+#[instruction(id: Pubkey)]
 pub struct UpdateMemory<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -66,7 +68,7 @@ pub struct UpdateMemory<'info> {
         // realloc is actually used to return the extra lamport or take the extra lamport by comparing current account space and previous account space
         realloc::payer = payer,
         realloc::zero = true,
-        seeds = [old_title.as_bytes(), payer.key().as_ref()], 
+        seeds = [id.as_ref(), payer.key().as_ref()], 
         bump,
     )]
     pub memory_account: Account<'info, Memory>,
@@ -75,14 +77,14 @@ pub struct UpdateMemory<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(title: String)]
+#[instruction(id: Pubkey)]
 pub struct DeleteMemory<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [title.as_bytes(), owner.key().as_ref()],
+        seeds = [id.as_ref(), owner.key().as_ref()],
         bump,
         close = owner
     )]
@@ -94,6 +96,7 @@ pub struct DeleteMemory<'info> {
 #[account]
 #[derive(InitSpace)]
 pub struct Memory {
+    pub id: Pubkey,
     pub owner: Pubkey,
 
     #[max_len(100)]
